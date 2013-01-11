@@ -2,7 +2,7 @@
 /**
 * Description of BlogPingPro
 *
-* @version  1.0
+* @version  1.1
 * @author Daniel Eliasson - joomla at stilero.com
 * @copyright  (C) 2012-sep-01 Stilero Webdesign http://www.stilero.com
 * @category Custom Form field
@@ -33,8 +33,8 @@
 // no direct access
 defined('_JEXEC') or die('Restricted access');
 
-$loggerfile = JPATH_PLUGINS.DS.'system'.DS.'blogpingpro'.DS.'classes'.DS.'logger.php';
-JLoader::register('Logger', $loggerfile);
+$loggerfile = JPATH_PLUGINS.DS.'system'.DS.'blogpingpro'.DS.'classes'.DS.'bplogger.php';
+JLoader::register('BPLogger', $loggerfile);
 
 if(version_compare(JVERSION, '1.6.0', '<')){
     /**
@@ -44,7 +44,7 @@ if(version_compare(JVERSION, '1.6.0', '<')){
 
         function fetchElement($name, $value, &$node, $control_name){
             $sqlScriptFilePath = JPATH_PLUGINS.DS.'system'.DS.'blogpingpro'.DS.'sql'.DS.'install.sql';
-            $logger = new Logger('#__blogpingpro_log', $sqlScriptFilePath, array('isDebugging' => true));
+            $logger = new BPLogger('#__blogpingpro_log', $sqlScriptFilePath, array('isDebugging' => true));
             if(!$logger->isLogTableExisting()){
                 if($logger->createLogTable()){
                     JError::raiseNotice(0, JText::_('PLG_SYSTEM_BLOGPINGPRO_LOGCREATE_SUCCESS'));
