@@ -16,7 +16,7 @@
 // no direct access
 defined('_JEXEC') or die('Restricted access'); 
 
-class StileroBPPShareTable{
+class StileroBPPSharetable{
     
     protected $_table;
     

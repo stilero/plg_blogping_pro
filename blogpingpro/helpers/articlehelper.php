@@ -14,7 +14,7 @@
 // no direct access
 defined('_JEXEC') or die('Restricted access'); 
 
-class StileroBPPArticleHelper{
+class StileroBPPArticlehelper{
     
     /**
      * Returns article alias from article id

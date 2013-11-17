@@ -15,7 +15,7 @@
 // no direct access
 defined('_JEXEC') or die('Restricted access'); 
 
-class StileroBPPCategoryHelper{
+class StileroBPPCategoryhelper{
     
     /**
      * Returns the Category Alias from the category id

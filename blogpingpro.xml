@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<install version="1.5" type="plugin" group="system" method="upgrade">
+<extension version="2.5" type="plugin" group="system" method="upgrade">
     <name>System - BlogPingPro</name>
     <author>Daniel Eliasson (joomla at stilero.com)</author>
     <creationDate>2012-jan-04</creationDate>
     <copyright>Copyright (c) 2012-jan-04 Stilero Webdesign http://www.stilero.com. All rights reserved.</copyright>
     <authorEmail>joomla@stilero.com</authorEmail>
     <authorUrl>www.stilero.com</authorUrl>
-    <version>2.4</version>
+    <version>2.5</version>
     <license>GPLv2</license>
     <description>This plugin make Joomla ping like Wordpress. If you like this plugin, show your love and write a review at http://extensions.joomla.org</description>
     <install>
@@ -29,44 +29,6 @@
         <language tag="sv-SE">sv-SE.plg_system_blogpingpro.sys.ini</language>
         <language tag="sv-SE">sv-SE.plg_system_blogpingpro.ini</language>
     </languages>
-    <!-- Standard plugin parameters for Joomla! 1.5 -->	
-    <params  addpath="/plugins/system/blogpingpro/elements">
-        <param 
-            name="catID"
-            type="categories"
-            label="PLG_SYSTEM_BLOGPINGPRO_CATID"
-            description="PLG_SYSTEM_BLOGPINGPRO_CATID_DESC"
-        />
-        <param 
-            name="tablecheck"
-            type="tablecheck"
-            label=""
-            description=""
-        />
-        <param name="pingServers" type="textarea" label="PLG_SYSTEM_BLOGPINGPRO_PINGSERVERS" description="PLG_SYSTEM_BLOGPINGPRO_PINGSERVERS_DESC" default="http://rpc.pingomatic.com/" cols="40" rows="10"/>
-    </params>
-    <params group="advanced" label="PLG_SYSTEM_BLOGPINGPRO_ADVSETTINGS">
-        <param name="delay" type="text"  default="15" label="PLG_SYSTEM_BLOGPINGPRO_DELAY" description="PLG_SYSTEM_BLOGPINGPRO_DELAY_DESC"/>
-        <param name="displayMessages" type="radio" default="1" label="PLG_SYSTEM_BLOGPINGPRO_DISPLAYMESSAGES" description="PLG_SYSTEM_BLOGPINGPRO_DISPLAYMESSAGES_DESC">
-            <option value="1">Yes</option>
-            <option value="0">No</option>
-        </param>
-        <param name="extendedPing" type="radio" default="1" label="PLG_SYSTEM_BLOGPINGPRO_EXTENDEDPING" description="PLG_SYSTEM_BLOGPINGPRO_EXTENDEDPING_DESC">
-            <option value="1">Yes</option>
-            <option value="0">No</option>
-        </param>
-        <param name="allwaysPingOnSave" type="radio" default="0" label="PLG_SYSTEM_BLOGPINGPRO_ALLWAYSPING" description="PLG_SYSTEM_BLOGPINGPRO_ALLWAYSPING_DESC">
-            <option value="1">Yes</option>
-            <option value="0">No</option>
-        </param>
-        <param name="rssurl" type="text"  default="" label="PLG_SYSTEM_BLOGPINGPRO_RSSURL" description="PLG_SYSTEM_BLOGPINGPRO_RSSURL_DESC"/>
-        <param name="timeout" type="list" default="3" label="PLG_SYSTEM_BLOGPINGPRO_TIMEOUT" description="PLG_SYSTEM_BLOGPINGPRO_TIMEOUT_DESC">
-            <option value="2">2 s</option>
-            <option value="3">3 s</option>
-            <option value="5">5 s</option>
-            <option value="10">10 s</option>
-        </param>
-    </params>	
     <!-- Standard plugin parameters for Joomla! 1.6+ -->
     <config>
         <fields name="params">
@@ -103,4 +65,4 @@
             </fieldset>
         </fields>
     </config>
-</install>
+</extension>

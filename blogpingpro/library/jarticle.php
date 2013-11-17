@@ -15,7 +15,7 @@
 // no direct access
 defined('_JEXEC') or die('Restricted access');
 
-class StileroBPPJArticle {
+class StileroBPPJarticle {
     
     var $Article;
     
@@ -97,7 +97,7 @@ class StileroBPPJArticle {
      * @return string SEF URL
      */
     public function url($article){
-        $articleSlug = StileroBPPArticleHelper::slugFromId($article->id);
+        $articleSlug = StileroBPPArticlehelper::slugFromId($article->id);
         $categorySlug = StileroBPPCategoryHelper::slugFromId($article->catid);
         $hasSH404SEF = StileroBPPExtensionHelper::isInstalled('com_sh404sef');
         if($hasSH404SEF){
@@ -223,7 +223,7 @@ class StileroBPPJArticle {
     }
 }
 
-class StileroBPPK2Article extends StileroBPPJArticle {
+class StileroBPPK2Article extends StileroBPPJarticle {
 
     public function __construct($article) {
         parent::__construct($article);

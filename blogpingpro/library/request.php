@@ -102,7 +102,7 @@ class StileroBPPRequest{
      * Builds the headers and sets them to the headers array
      */
     protected function _header(){
-        $contentLength  = strlen($$this->request);
+        $contentLength  = strlen($this->request);
         $headers = array(
             'Content-Type: text/xml',
             'Content-length: '.$contentLength,

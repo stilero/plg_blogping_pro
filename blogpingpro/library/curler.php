@@ -16,7 +16,7 @@ class StileroBPPCurler {
     protected $_isPost;
     protected $_curlHandler;
     protected $url;
-    protected $postVars;
+    public $postVars;
     protected $_response;
     protected $_responseInfoParts;
     protected $_cookieFile;
@@ -137,6 +137,10 @@ class StileroBPPCurler {
     
     public function setUrl($url){
         $this->url = $url;
+    }
+    
+    public function getUrl(){
+        return $this->url;
     }
     
     public function setHeader($header=''){

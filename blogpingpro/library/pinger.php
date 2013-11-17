@@ -27,21 +27,21 @@ class StileroBPPPinger extends StileroBPPCurler{
      * @var StileroBPPBlog 
      */
     protected $_blog;
-    
+    protected $_doExtendedPing = false;
     protected $_results;
 
 
-    public function __construct(StileroBPPBlog $blog, $servers, $url = "", $postVars = "", $config = "") {
+    public function __construct(StileroBPPBlog $blog, $servers, $doExtendedPing = false, $url = "", $postVars = "", $config = "") {
         parent::__construct($url, $postVars, $config);
         $this->_blog = $blog;
         $this->_servers = $servers;
-        $this->checkSettings();
+        $this->_doExtendedPing = $doExtendedPing;
         $this->setRequest();
     }
     
     protected function setRequest(){
         $doExtended = false;
-        if($this->_blog->hasExtendedInfo() && $this->params->def('extendedPing')){
+        if($this->_blog->hasExtendedInfo() && $this->_doExtendedPing){
             $doExtended = true;
         }
         $request = new StileroBPPRequest($this->_blog, $doExtended);
@@ -64,7 +64,11 @@ class StileroBPPPinger extends StileroBPPCurler{
      * Sends the ping
      */
     public function ping(){
-        $this->query();
+        foreach ($this->_servers as $server) {
+            $this->setUrl($server->url);
+            $this->query();
+        }
+        
         $this->_handleResponse();
     }
     

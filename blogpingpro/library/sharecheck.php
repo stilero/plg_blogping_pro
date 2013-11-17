@@ -14,7 +14,7 @@
 // no direct access
 defined('_JEXEC') or die('Restricted access'); 
 
-class StileroBPPShareCheck{
+class StileroBPPSharecheck{
     
     protected $_Article;
     protected $_Table;
@@ -27,14 +27,14 @@ class StileroBPPShareCheck{
     /**
      * Class for checking before posts
      * @param Object $Article Article object returned from the JArticle class
-     * @param StileroBPPShareTable $Table Table object
+     * @param StileroBPPSharetable $Table Table object
      * @param int $minBetweenPosts Minutes between posts
      * @param date $dateLimit A date to only post newer than this date, for example 2013-08-13.
      * @param string $catList Comma separated list of categories to post, for example 2,3,5,7
      * @param boolean $isOverridingDelayCheck Set this to allways post on save
      * @param boolean $isBackend True if called from backend
      */
-    public function __construct($Article, StileroBPPShareTable $Table, $minBetweenPosts=5, $dateLimit='', $catList='', $isOverridingDelayCheck=false, $isBackend=true) {
+    public function __construct($Article, StileroBPPSharetable $Table, $minBetweenPosts=5, $dateLimit='', $catList='', $isOverridingDelayCheck=false, $isBackend=true) {
         $this->_Article = $Article;
         $this->_Table = $Table;
         $this->_minBetweenPosts = $minBetweenPosts;
