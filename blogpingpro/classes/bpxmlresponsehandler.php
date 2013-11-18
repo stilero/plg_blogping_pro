@@ -1,32 +1,12 @@
 <?php
 /**
- * Description of PingClass
+ * Class for handling XML responses
  *
- * @version  1.0
+ * @version  1.01
  * @author Daniel Eliasson - joomla at stilero.com
  * @copyright  (C) 2012-aug-31 Stilero Webdesign http://www.stilero.com
  * @category Plugins
  * @license	GPLv2
- * 
- * Joomla! is free software. This version may have been modified pursuant
- * to the GNU General Public License, and as distributed it includes or
- * is derivative of works licensed under the GNU General Public License or
- * other free or open source software licenses.
- * 
- * This file is part of xmlparser.
- * 
- * PingClass is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- * 
- * PingClass is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with PingClass.  If not, see <http://www.gnu.org/licenses/>.
  * 
  */
 
@@ -34,15 +14,34 @@
 defined('_JEXEC') or die('Restricted access'); 
 
 class BPXMLResponseHandler{
-    
-    private $_xmlString;
+    /**
+     * XML-string
+     * @var string 
+     */
+    private $xml;
+    /**
+     * Resource for XML Parser
+     * @var resource 
+     */
     private $_xmlParser;
+    /**
+     * Flag for setting catching or not
+     * @var boolean 
+     */
     private $_isCatching = false;
+    /**
+     * The name of the XML node
+     * @var string 
+     */
     private $_nodeName;
+    /**
+     * Array of responses
+     * @var array 
+     */
     private $_response;
     
     public function __construct($xmlString="") {
-        $this->_xmlString = $xmlString;
+        $this->xml = $xmlString;
         if($xmlString != ""){
             $this->processResponse();
         }
@@ -50,28 +49,39 @@ class BPXMLResponseHandler{
     
     public function processResponse(){
         $this->_cleanXMLString();
-        if(!$this->_isReadyToProcess()){
+        if($this->_isEmpty()){
             return false;
         }
         $this->_handleXMLResponse();
     }
     
+    /**
+     * Cleans out start en end tags from XML
+     */
     private function _cleanXMLString(){
-        $partsOfXMLString = preg_split( '/<\?xml.*?\?'.'>/', $this->_xmlString);
-        $this->_xmlString = isset($partsOfXMLString[1]) ? trim($partsOfXMLString[1]) : '';
+        $partsOfXMLString = preg_split( '/<\?xml.*?\?'.'>/', $this->xml);
+        $this->xml = isset($partsOfXMLString[1]) ? trim($partsOfXMLString[1]) : '';
     }
-    
-    private function _isReadyToProcess(){
-        if($this->_xmlString == ''){
-            return false;
+    /**
+     * Checks if the XML is empty or not
+     * @return boolean
+     */
+    private function _isEmpty(){
+        if($this->xml == ''){
+            return true;
         }
-        return true;
+        return false;
     }
-    
+    /**
+     * Clears any previous response
+     */
     private function _resetResponse(){
         $this->_response = null;
     }
-    
+    /**
+     * Handles an parser the XML Response
+     * @return boolean false on fail
+     */
     private function _handleXMLResponse() {
         $this->_xmlParser = xml_parser_create();
         xml_set_object($this->_xmlParser, $this);
@@ -80,11 +90,11 @@ class BPXMLResponseHandler{
         $final = false;
         $chunk_size = 262144;
         do{
-            if(strlen($this->_xmlString) <= $chunk_size) {
+            if(strlen($this->xml) <= $chunk_size) {
                 $final = true;
             }
-            $part = substr($this->_xmlString, 0, $chunk_size);
-            $this->_xmlString = substr($this->_xmlString, $chunk_size);
+            $part = substr($this->xml, 0, $chunk_size);
+            $this->xml = substr($this->xml, $chunk_size);
             if(!xml_parse($this->_xmlParser, $part, $final)) {
                 return false;
             }
@@ -94,7 +104,12 @@ class BPXMLResponseHandler{
         } while (true);
         xml_parser_free($this->_xmlParser);
     }
-    
+    /**
+     * Method called by _handleXMLResponse to identify start tags. When a start
+     * tag is identified, the catching flag is set to true.
+     * @param resource $parser XML Parser
+     * @param string $data
+     */
     private function _xmlStartTag($parser, $data){
         $tagName = strtolower($data);
         switch ($tagName) {
@@ -117,9 +132,20 @@ class BPXMLResponseHandler{
                 break;
         }
     }
+    /**
+     * Method for catching end tags
+     * @param resource $parser XML Parser
+     * @param type $data
+     */
     private function _xmlEndTag($parser, $data) {
         return;
     }
+    
+    /**
+     * Catches the content between the start and end tags
+     * @param resource $parser XML Parser
+     * @param string $data XML data
+     */
     private function _xmlContentBetweenTags($parser, $data){
         if( ! $this->_isCatching ) {
             return;
@@ -150,14 +176,26 @@ class BPXMLResponseHandler{
         }
     }
     
-    public function setXMLString($xmlString){
-        $this->_xmlString = $xmlString;
+    /**
+     * Method for setting XML string
+     * @param string $xml
+     */
+    public function setXML($xml){
+        $this->xml = $xml;
     }
     
+    /**
+     * Returns an array of responses
+     * @return array Responses
+     */
     public function getResponse() {
         return array($this->_response['flerror'], $this->_response['message']);
     }
-    
+    /**
+     * Tests if a string is XML or not
+     * @param string $stringToTest
+     * @return boolean
+     */
     public function isXML($stringToTest){
         $isXMLTagFound = preg_match('/<\?xml.*?\?'.'>/', $stringToTest);
         return $isXMLTagFound;        
