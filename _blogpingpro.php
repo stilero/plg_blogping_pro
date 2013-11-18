@@ -128,7 +128,7 @@ class plgSystemBlogpingpro extends JPlugin {
         $results = $this->_Pinger->getResults();
         foreach ($results as $result) {
             if($result['http_code'] == self::HTTPCODE_OK && $this->_XMLResponseHandler->isXML($result['response'])){
-                $this->_XMLResponseHandler->setXMLString($result['response']);
+                $this->_XMLResponseHandler->setXML($result['response']);
                 $this->_XMLResponseHandler->processResponse();
                 $response = $this->_XMLResponseHandler->getResponse();
                 $response['server'] = $result['server'];

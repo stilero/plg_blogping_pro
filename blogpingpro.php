@@ -1,14 +1,15 @@
 <?php
 /**
- * plg_blogping_pro
+ * Class for sending pings to search engines.
  *
- * @version  1.0
- * @package Stilero
- * @subpackage plg_blogping_pro
- * @author Daniel Eliasson <daniel at stilero.com>
- * @copyright  (C) 2013-nov-17 Stilero Webdesign (http://www.stilero.com)
- * @license	GNU General Public License version 2 or later.
- * @link http://www.stilero.com
+ * @version  2.3
+ * @version $Id$
+ * @author Daniel Eliasson - joomla at stilero.com
+ * @copyright  (C) 2012-sep-01 Stilero Webdesign http://www.stilero.com
+ * @category Plugins
+ * @license	GPLv2
+ * 
+ * 
  */
 
 // no direct access
@@ -16,147 +17,272 @@ defined('_JEXEC') or die('Restricted access');
 if(!defined('DS')){
     define('DS',DIRECTORY_SEPARATOR);
 }
-jimport('joomla.event.plugin');
+
+// import library dependencies
+jimport('joomla.plugin.plugin');
 JLoader::discover('StileroBPP', dirname(__FILE__).DS.'blogpingpro'.DS.'library'.DS);
 JLoader::discover('StileroBPP', dirname(__FILE__).DS.'blogpingpro'.DS.'helpers'.DS);
-class plgSystemBlogpingpro extends JPlugin{
-    /**
-     * Article object
-     * @var StileroBPPJarticle 
-     */
-    protected $_Article;
-    protected $_ShareCheck;
-    protected $_Table;
-    protected $_Blog;
-    protected $_delay;
-    protected $_categoryList;
-    protected $_doExtendedPing;
-    protected $_isBackend;
-    protected $_isK2 = false;
-    protected $_servers = array();
-    const TABLE_NAME = '#__blogpingpro_log';
-    const LANG_PREFIX = 'PLG_SYSTEM_BLOGPINGPRO_';
-    const EXTENSION = 'plg_system_blogpingpro';
-    
-    public function plgSystemBlogpingpro( &$subject, $config ) {
-        parent::__construct($subject, $config);
+JLoader::discover('BP', dirname(__FILE__).DS.'blogpingpro'.DS.'classes'.DS);
+
+class plgSystemBlogpingpro extends JPlugin {
+    private $_config;
+    private $_JArticle;
+    private $_Logger;
+    private $_Checker;
+    private $_Message;
+    private $_Pinger;
+    private $_XMLResponseHandler;
+    private $_Debugger;
+    private $_articleClasses;
+    private $_pingServers;
+    private $_categoryIDs;
+    private $_pluginPath;
+    private $_isSuccessful;
+    const HTTPCODE_NOT_FOUND = '404';
+    const HTTPCODE_OK = '200';
+    const HTTPCODE_COMMUNICATION_ERROR = '0';
+    const PINGRESPONSE_NO_ERROR = '0';
+    const PINGRESPONSE_ERROR = '1';
+
+    function plgSystemBlogpingpro ( &$subject, $config ) {
+        parent::__construct( $subject, $config );
         $language = JFactory::getLanguage();
-        $language->load(self::EXTENSION, JPATH_ADMINISTRATOR, 'en-GB', true);
-        $language->load(self::EXTENSION, JPATH_ADMINISTRATOR, null, true);
-        $this->_delay = $this->params->def('delay');
-        $this->_categoryList = $this->params->def('catID');
-        $this->_doExtendedPing = $this->params->def('extendedPing');
-        $this->setServers();
-    }
-    
-    /**
-     * Iterates the list of servers and creates server objects in an array
-     */
-    protected function setServers(){
-        $urls = explode("\n", $this->params->def('pingServers'));
-        foreach ($urls as $url) {
-            if(isset($url)){
-                $server = new StileroBPPServer($url);
-                $this->_servers[] = $server;
-            }
+        $language->load('plg_system_blogpingpro', JPATH_ADMINISTRATOR, 'en-GB', true);
+        $language->load('plg_system_blogpingpro', JPATH_ADMINISTRATOR, null, true);
+        $this->_config = array(
+            'pluginName'        => 'blogpingpro',
+            'pluginType'        => 'system',
+            'logTableName'      => '#__blogpingpro_log',
+            'langPrefix'        => "PLG_SYSTEM_BLOGPINGPRO_",
+            'delay'             => $this->params->def('delay'),
+            'timeout'           => $this->params->def('timeout'),
+            'extendedPing'      => $this->params->def('extendedPing'),
+            'allwaysPingOnSave' => $this->params->def('allwaysPingOnSave'),
+            'rssurl'            => $this->params->def('rssurl')
+        );
+        $this->_pingServers = explode("\n", $this->params->def('pingServers'));
+        $categories = $this->params->def('catID');
+        if(is_array($categories) && !empty($categories)){
+            $categories = implode(', ', $categories);
         }
+        $this->_categoryIDs = $categories;
+        /*
+        $this->_articleClasses = array(
+            'com_article' => 'StileroBPPJarticle',
+            'com_content' => 'StileroBPPJarticle',
+            'com_k2' =>  'StileroBPPK2Article',
+            'com_zoo' =>  'BPzooArticle',
+            'com_virtuemart' => 'BPvmArticle'
+        );*/
+        $this->_articleClasses = array(
+            'com_article' => 'StileroBPPJarticle',
+            'com_content' => 'StileroBPPJarticle',
+            'com_k2' =>  'StileroBPPK2Article'
+        );
     }
     
-    /**
-     * Initializes all oauth classes for the plugin
-     */
-    protected function _initializeClasses(){
-        //$this->_Table = new StileroBPPShareTable(self::TABLE_NAME);
-    }
-    
-    /**
-     * Initializes all before posting
-     * @param boolean $inBackend True if posted from backend
-     * @param Object $article Joomla article Object
-     */
-    protected function _initializePosting($article){
-        $this->_Table = new StileroBPPSharetable(self::TABLE_NAME);
-        if(!$this->_isK2){
-            $this->_Article = new StileroBPPJarticle($article);
+    public function onContentAfterSave($context, $article, $isNew) {
+        $this->_prepareToPing($article);
+        $errors = $this->_Checker->getErrors();
+        if(empty($errors)){
+            $this->_preSaveLog();
+            $this->_Pinger->ping();
+            $this->_handlePingResponse();
+            $this->_logPing();
+            $this->_debug();
         }else{
-            $this->_Article = new StileroBPPK2Article($article);
-        }
-        $this->_ShareCheck = new StileroBPPSharecheck($this->_Article->getArticleObj(), $this->_Table, $this->_delay, '', $this->_categoryList, TRUE, $this->_isBackend);
-        $app = JFactory::getApplication();
-        $blogName = $app->getCfg('sitename');
-        $url = JUri::root();
-        $Article = $this->_Article->getArticleObj();
-        $itemUrl = $Article->url;
-        $rss = JURI::root()."index.php". "?format=feed&type=rss";
-        $tags = $Article->metakey;
-        $this->_Blog = new StileroBPPBlog($blogName, $url, $itemUrl, $rss, $tags);
-    }
-    
-    /**
-     * Displays a Joomla message in backend.
-     * @param string $message The message to display
-     * @param string $type The type of message
-     */
-    protected function _showMessage($message, $type='message'){
-        if($this->_isBackend){
-            StileroBPPMessageHelper::show($message, $type);
-        }
-    }
-    
-    /**
-     * Prepares and sends a ping. Displays messages after pinging.
-     * @param Object $article Joomla article Object
-     */
-    protected function _sendTweet($article){
-        $this->_initializePosting($article);
-        $Article = $this->_Article->getArticleObj();
-        $hasChecksPassed = $this->_ShareCheck->hasFullChecksPassed();
-        $isInLog = $this->_Table->isLogged($Article->id, $Article->component);
-        if(!$isInLog){
-            if($hasChecksPassed && !$isInLog){
-                $Pinger = new StileroBPPPinger($this->_Blog, $this->_servers);
-                $Pinger->ping();
-                $response = $Pinger->getResponse();
-                var_dump($response);exit;
-                
-                $status = StileroTTTweetHelper::buildTweet($Article, 5, $this->_defaultTag, $this->_useMetaAsHash);
-                $response = $this->_Tweet->update($status);
-                $TwitterResponse = new StileroTTTwitterResponse($response);
-                if($TwitterResponse->hasID()){
-                    $message = JText::_(self::LANG_PREFIX.'SUCCESS').$status;
-                    $this->_showMessage($message);
-                    $this->_Table->saveLog($Article->id, $Article->catid, $Article->url, $Article->lang, $Article->component);
-                }else if($TwitterResponse->hasError()){
-                    $message = JText::_(self::LANG_PREFIX.'ERROR').'('.$TwitterResponse->errorCode.') '.$TwitterResponse->errorMsg;
-                    $this->_showMessage($message, StileroTTMessageHelper::TYPE_ERROR);
-                }else{
-                    $message = JText::_(self::LANG_PREFIX.'UNKNOWN_ERROR');
-                    $this->_showMessage($message, StileroTTMessageHelper::TYPE_ERROR);
+            $messages = array();
+            $this->_setIsSuccessful(FALSE);
+            if(count($errors) > 1){
+                foreach ($errors as $error) {
+                    $messages[] = JText::_($error['message']);
                 }
             }else{
-                $message = JText::_(self::LANG_PREFIX.'FAILED_CHECKS');
-                //$this->_showMessage($message, StileroTTMessageHelper::TYPE_ERROR);
+                $messages = JText::_($errors[0]['message']);
             }
-        }else {
-            $message = JText::_(self::LANG_PREFIX.'DUPLICATE_TWEET');
-            $this->_showMessage($message, StileroTTMessageHelper::TYPE_NOTICE);
+            $this->_Message->notice($messages);
+            //$this->_logPing();
+            $this->_debug();
         }
     }
     
-    /**
-     * Method called after saving an article
-     * @param string $context
-     * @param Object $article
-     * @param boolean $isNew
-     */
-    public function onContentAfterSave($context, $article, $isNew) {
-        $this->_isBackend = true;
-        if($context == StileroBPPContextHelper::K2_ITEM){
-            $this->_isK2 = TRUE;
-        }
-        if(StileroBPPContextHelper::isArticle($context)){
-            $this->_sendTweet($article);
-        }
-        //return;
+    private function _prepareToPing($article){
+        $this->_initClasses($article);
+        $this->_doChecks();
+        $this->_Pinger->setPingServerUrls($this->_pingServers);
+        $articleObject = $this->_JArticle->getArticleObj();
+        $blogName = $articleObject->title;
+        $blogURL = JURI::root();
+        $blogPostURL = $articleObject->url;
+        $feedURL = $this->_getRssUrl();
+        $tags = $articleObject->tags;
+        $this->_Pinger->setBlog($blogName,$blogPostURL , $blogPostURL, $feedURL, $tags);
     }
-}
+    
+    private function _preSaveLog(){
+        $app = JFactory::getApplication();
+        $tzoffset = $app->getCfg('config.offset');
+        $date =& JFactory::getDate('', $tzoffset);
+        $currentDate = $date->toSql(true);
+        $articleObject = $this->_JArticle->getArticleObj();
+        $fields = array(
+            'article_id' => $articleObject->id,
+            'cat_id' => $articleObject->catid,
+            'articlelink' => $articleObject->url,
+            'option' => JRequest::getVar('option'),
+            'date' => $currentDate,
+            'language' => $articleObject->language
+        );
+        $this->_Logger->save($fields);    
+    }
+    
+    private function _handlePingResponse(){
+        $results = $this->_Pinger->getResults();
+        foreach ($results as $result) {
+            if($result['http_code'] == self::HTTPCODE_OK && $this->_XMLResponseHandler->isXML($result['response'])){
+                $this->_XMLResponseHandler->setXML($result['response']);
+                $this->_XMLResponseHandler->processResponse();
+                $response = $this->_XMLResponseHandler->getResponse();
+                $response['server'] = $result['server'];
+                $this->_processPingSuccess($response);
+            }else{
+                $this->_processPingError($result);
+            }
+        }
+    }
+    
+    private function _processPingSuccess($response){
+        $responseCode = $response[0];
+        $server = $response['server'];
+        $responseMessage = $server.': '.$response[1];
+        switch ($responseCode) {
+            case self::PINGRESPONSE_NO_ERROR:
+                $this->_Message->info($responseMessage);
+                $this->_setIsSuccessful(TRUE);
+                break;
+            case self::PINGRESPONSE_ERROR:
+                $this->_Message->notice($responseMessage);
+                //$this->_setIsSuccessful(FALSE);
+                break;
+            default:
+                break;
+        }
+    }
+    
+    private function _processPingError($response){
+        $message = '';
+        $httpCode = $response['http_code'];
+        switch ($httpCode) {
+            case self::HTTPCODE_NOT_FOUND :
+                $message = JText::sprintf('PLG_SYSTEM_BLOGPINGPRO_SERVER_NOTFOUND', $response['server']);
+                break;
+            case self::HTTPCODE_COMMUNICATION_ERROR :
+                $message = JText::sprintf('PLG_SYSTEM_BLOGPINGPRO_SERVER_NORESPOND', $response['server']);
+                break;
+            case self::HTTPCODE_OK :
+                $message = JText::sprintf('PLG_SYSTEM_BLOGPINGPRO_FOUND_SERVER_NORESPOND', $response['server']);
+                break;
+            default:
+                $message = JText::sprintf('PLG_SYSTEM_BLOGPINGPRO_SERVER_ERROR_UNKNOWN', $response['server']);
+                $message .= ' > ResponseCode='.$response['http_code'].', ResponseMessage'.$response['message'];
+                break;
+        }
+        $this->_Message->warning($message);
+        $this->_setIsSuccessful(FALSE);
+    }
+    
+    private function _initClasses($article){
+        
+        $pluginFilesFolderPath = $this->_buildPluginPath();
+        $this->_Message = new BPMessage();
+        $logTable = $this->_config['logTableName'];
+        $sqlFilePath = $pluginFilesFolderPath.'sql'.DS.'install.sql';
+        $this->_Logger = new BPLogger($logTable, $sqlFilePath);
+        $this->_JArticle = new StileroBPPJarticle($article);
+        $articleObject = $this->_JArticle->getArticleObj();
+        $config = array(
+            'logTable' => $logTable,
+            'categoriesToShare' => $this->_categoryIDs,
+            'shareDelay' => $this->_config['delay'],
+            'langPrefix' => $this->_config['langPrefix']
+        );
+        $this->_Checker = new BPArticleChecker($articleObject, $config);
+        $this->_Pinger = new BPPinger();
+        $this->_XMLResponseHandler = new BPXMLResponseHandler();
+        $this->_Debugger = new BPDebugger();
+    }
+    
+    private function _buildPluginPath(){
+        $pluginName = $this->_config['pluginName'];
+        $pluginType = $this->_config['pluginType'];
+        $this->_pluginPath = JPATH_PLUGINS.DS.$pluginType.DS.$pluginName.DS.$pluginName.DS;
+        $isLessThanJ16 = version_compare(JVERSION, '1.6.0', '<');
+        if($isLessThanJ16){
+            $this->_pluginPath = JPATH_PLUGINS.DS.$pluginType.DS.$pluginName.DS;
+        }
+        return $this->_pluginPath;
+    }
+    
+    private function _doChecks(){
+        //$this->CheckClass->isServerSupportingRequiredFunctions();
+        //$this->CheckClass->isPingServersEntered();
+        $this->_Checker->isArticleObjectIncluded();
+        $article = $this->_JArticle->getArticleObj();
+        $articleID = $article->id;
+        if($this->_Logger->isArticleIdFoundInLog($articleID) && $this->params->def('allwaysPingOnSave') != 1){
+            $this->_Checker->setError('PLG_SYSTEM_BLOGPINGPRO_ALREADY_POSTED');
+        }
+        $this->_Checker->isItemActive();
+        $this->_Checker->isItemPublished();
+        $this->_Checker->isItemPublic();
+        $this->_Checker->isCategoryToShare();
+        if(!$this->_Logger->isLogTableExisting()){
+            if(!$this->_Logger->createLogTable()){
+                $this->_Checker->setError(JText::_('PLG_SYSTEM_BLOGPINGPRO_LOGCREATE_FAILURE'), 'error');
+            }
+        }
+        $this->_Checker->isSharingToEarly(); 
+    }
+    
+    private function _getRssUrl(){
+        $rssQuery = "?format=feed&type=rss";
+        $rssURL = JURI::root()."index.php".$rssQuery;
+        return $rssURL;
+    }
+    
+    private function _debug(){
+        if(JDEBUG){
+            $debugInfoArray = $this->_Debugger->getDebugInfo();
+            $debugInfo = implode('</li><li>', $debugInfoArray);
+            $debugMessage = '';
+            foreach ($debugInfoArray as $$debugInfo) {
+                if(is_array($debugInfo)){
+                    $debugInfo .= implode('</li><li>', $debugInfo);
+                }
+                $debugMessage .= $debugInfo;
+            }
+            $this->_Message->notice($debugMessage);
+        }
+    }
+        
+    private function _logPing(){
+        if($this->_isSuccessful === TRUE){
+            return;
+        }else{
+            $field = array(
+                'article_id' => $this->_JArticle->articleObj->id,
+                'option' => JRequest::getVar('option'),
+                'language' => $this->_JArticle->articleObj->language
+            );
+            $this->_Logger->delete($field);
+        }
+    }
+    
+    private function _setIsSuccessful($isSuccessful){
+        if($this->_isSuccessful === TRUE){
+            return;
+        }
+        $this->_isSuccessful = $isSuccessful;
+    }
+
+} //End Class

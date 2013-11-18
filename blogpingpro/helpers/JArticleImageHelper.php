@@ -126,7 +126,7 @@ class StileroBPPJArticleImageHelper{
 /**
  * Class for extracting images from K2 items
  */
-class StileroTTK2ImageHelper extends StileroBPPJArticleImageHelper{
+class StileroBPPK2ImageHelper extends StileroBPPJArticleImageHelper{
     
     /**
      * Returns the image url from a K2 item

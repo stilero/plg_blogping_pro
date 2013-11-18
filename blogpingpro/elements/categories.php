@@ -14,11 +14,12 @@ defined('_JEXEC') or die('Restricted access');
 class Categories{
     static function getCategories(){
         $db = JFactory::getDBO();
-        $query =
-            'SELECT '.$db->nameQuote('id').', '.$db->nameQuote('title').
-                ' FROM '.$db->nameQuote('#__categories').
-                ' WHERE '.$db->nameQuote('extension').'='.$db->quote('com_content').
-                ' AND published = 1 ORDER BY '.$db->nameQuote('title').' ASC';
+        $query = $db->getQuery(true);
+        $query->select('id, title');
+        $query->from($db->qn('#__categories'));
+        $query->where('extension='.$db->quote('com_content'));
+        $query->where('published=1');
+        $query->order('title');
         $db->setQuery($query);    
         $result = $db->loadAssocList();
         return $result;

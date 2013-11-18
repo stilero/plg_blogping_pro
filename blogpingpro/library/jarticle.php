@@ -248,7 +248,7 @@ class StileroBPPK2Article extends StileroBPPJarticle {
      * @return string image url
      */
     protected function introImage($Article) {
-        return StileroTTK2ImageHelper::introImage($Article);
+        return StileroBPPK2ImageHelper::introImage($Article);
     }
     
     /**
@@ -257,7 +257,7 @@ class StileroBPPK2Article extends StileroBPPJarticle {
      * @return string image url
      */
     protected function fullTextImage($Article) {
-        return StileroTTK2ImageHelper::fullTextImage($Article);
+        return StileroBPPK2ImageHelper::fullTextImage($Article);
     }
     
     /**
@@ -266,7 +266,7 @@ class StileroBPPK2Article extends StileroBPPJarticle {
      * @return Array image urls
      */
     protected function images($Article) {
-        return StileroTTK2ImageHelper::imagesInContent($Article);        
+        return StileroBPPK2ImageHelper::imagesInContent($Article);        
     }
 
 
