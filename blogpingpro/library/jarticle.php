@@ -219,7 +219,7 @@ class StileroBPPJarticle {
      * @return Array tags
      */
     protected function tags($Article){
-        return StileroTTTagsHelper::tags($Article->metakey);
+        return StileroBPPTagsHelper::tags($Article->metakey);
     }
 }
 
